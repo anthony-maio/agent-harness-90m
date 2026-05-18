@@ -1,0 +1,14 @@
+# Default policy -- conservative.
+# The harness loads this when no task-specific policy override exists.
+
+require_approval:
+  - write_file
+
+block:
+  - send_email
+  - delete_file
+  - run_shell
+  - post_online
+  - access_credentials
+
+workspace_root: "./workspace"

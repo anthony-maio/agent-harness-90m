@@ -1,0 +1,53 @@
+# Agent Harness Configuration
+# ---
+# This file defines what the harness can do, how it routes LLM calls,
+# and where it enforces limits.
+
+model:
+  provider: "openai"           # litellm provider string
+  name: "gpt-4o-mini"          # model name (any litellm-supported model)
+  temperature: 0.2
+  max_tokens: 4096
+
+budget:
+  max_llm_calls: 25            # hard stop after N LLM calls per run
+  max_tool_calls: 50           # hard stop after N tool invocations
+  max_wall_seconds: 300        # kill the run after 5 minutes
+  warn_at_percentage: 80       # print a warning at 80% of any limit
+
+tools:
+  read_file:
+    description: "Read contents of a file"
+    risk: low
+  write_file:
+    description: "Write content to a file in the workspace"
+    risk: medium
+  list_files:
+    description: "List files in a directory"
+    risk: low
+  web_search:
+    description: "Search the web for current information"
+    risk: low
+  summarize:
+    description: "Summarize text using the LLM"
+    risk: low
+
+policy:
+  require_approval:
+    - write_file              # ask before writing
+  block:
+    - send_email              # never allow
+    - delete_file             # never allow
+    - run_shell               # never allow
+  workspace_root: "./workspace"  # tools can only touch files under here
+
+memory:
+  file: "memory.md"
+  max_entries: 100
+
+logging:
+  tool_calls: "logs/tool_calls.jsonl"
+  llm_calls: "logs/llm_calls.jsonl"
+
+reports:
+  output_dir: "reports"
