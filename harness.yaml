@@ -5,7 +5,7 @@
 
 model:
   provider: "openai"           # litellm provider string
-  name: "gpt-4o-mini"          # model name (any litellm-supported model)
+  name: "gpt-4.1-mini"         # model name (any litellm-supported model)
   temperature: 0.2
   max_tokens: 4096
 
