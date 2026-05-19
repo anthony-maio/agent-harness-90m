@@ -62,7 +62,7 @@ class PolicyGate:
 
     def _is_in_workspace(self, path: str) -> bool:
         try:
-            resolved = Path(path).resolve()
+            resolved = (self._workspace_root / path).resolve()
             workspace = self._workspace_root.resolve()
             return str(resolved).startswith(str(workspace))
         except (ValueError, OSError):

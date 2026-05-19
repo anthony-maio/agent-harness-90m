@@ -29,6 +29,12 @@ Rules:
 - When the task is complete, respond with a final answer (no tool calls).
 - If you cannot complete the task, explain what's blocking you.
 - Be concise. Tool results are logged automatically.
+- All file paths are relative to the workspace root (e.g. "brief.md" not "workspace/brief.md").
+
+Memory:
+If you learn something worth remembering for future runs, include a line
+starting with MEMORY: in your final answer. Example:
+  MEMORY: small-model reasoning has shifted toward test-time compute scaling
 
 Available memory context:
 {memory}
@@ -90,6 +96,7 @@ def run_task(
     files_changed: list[str] = []
     approvals: list[dict] = []
     failures: list[dict] = []
+    final_answer = ""
     step = 0
 
     logger.log_event("run_started", f"Task: {task.source_path}")
@@ -115,6 +122,7 @@ def run_task(
         except Exception as e:
             print(f"  [error] LLM call failed: {e}")
             failures.append({"step": step, "error": str(e)})
+            final_answer = f"Run stopped: LLM call failed at step {step}. Error: {e}"
             logger.log_event("llm_error", str(e))
             break
 
@@ -185,8 +193,9 @@ def run_task(
                     "content": result[:4000],
                 }
             )
-    else:
-        final_answer = "Run ended without a final answer."
+
+    if not final_answer:
+        final_answer = "Budget exhausted before task completion."
 
     memory_suggestions = _extract_memory_suggestions(messages)
 
@@ -201,7 +210,7 @@ def run_task(
         failures=failures,
         budget_summary=budget.summary(),
         memory_suggestions=memory_suggestions,
-        final_answer=final_answer if "final_answer" in dir() else "Budget exhausted before completion.",
+        final_answer=final_answer,
         output_dir=config.get("reports", {}).get("output_dir", "reports"),
         task_id=task_id,
     )
