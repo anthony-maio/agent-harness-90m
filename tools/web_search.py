@@ -1,12 +1,20 @@
-"""Web search stub. Replace with a real search API for production use.
+"""Search the web using the Brave Search API.
 
-This stub returns a canned response so the harness works end-to-end
-without requiring a search API key. Swap it out for SerpAPI, Tavily,
-Brave Search, or whatever you prefer.
+Free tier: 2,000 queries/month, no credit card required.
+Sign up at https://brave.com/search/api/ and set BRAVE_API_KEY in .env.
+
+If no API key is set, falls back to a stub response so the harness
+still works end-to-end for testing.
 """
 
+import json
+import os
+import urllib.request
+import urllib.parse
+import urllib.error
+
 NAME = "web_search"
-DESCRIPTION = "Search the web for current information on a topic. Returns a list of results with titles, URLs, and snippets."
+DESCRIPTION = "Search the web for current information on a topic. Returns titles, URLs, and snippets."
 PARAMETERS = {
     "type": "object",
     "properties": {
@@ -25,20 +33,46 @@ PARAMETERS = {
 
 
 def execute(query: str, num_results: int = 5) -> str:
-    # Stub implementation. Replace the body of this function with a real
-    # search API call. The harness doesn't care how you get results --
-    # it only cares that this function returns a string.
-    #
-    # Example with Tavily:
-    #   from tavily import TavilyClient
-    #   client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-    #   results = client.search(query, max_results=num_results)
-    #   return json.dumps(results["results"], indent=2)
+    api_key = os.environ.get("BRAVE_API_KEY", "")
+    if not api_key:
+        return (
+            f"[web_search] No BRAVE_API_KEY set. Query: '{query}'\n"
+            f"Get a free key at https://brave.com/search/api/ (2,000 queries/month).\n"
+            f"Add BRAVE_API_KEY=your_key to .env and re-run."
+        )
 
-    return (
-        f"[web_search stub] Query: '{query}'\n"
-        f"This is a stub. To get real results, replace tools/web_search.py "
-        f"with a real search API integration (Tavily, SerpAPI, Brave, etc.).\n"
-        f"The harness will work the same way -- it just calls execute() and "
-        f"logs the result."
+    params = urllib.parse.urlencode({"q": query, "count": min(num_results, 20)})
+    url = f"https://api.search.brave.com/res/v1/web/search?{params}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "X-Subscription-Token": api_key,
+        },
     )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            raw = resp.read()
+            if resp.headers.get("Content-Encoding") == "gzip":
+                import gzip
+                raw = gzip.decompress(raw)
+            data = json.loads(raw)
+    except urllib.error.HTTPError as e:
+        return f"Brave Search API error: {e.code} {e.reason}"
+    except Exception as e:
+        return f"Web search failed: {e}"
+
+    results = data.get("web", {}).get("results", [])
+    if not results:
+        return f"No results found for: {query}"
+
+    lines = []
+    for i, r in enumerate(results[:num_results], 1):
+        title = r.get("title", "No title")
+        url = r.get("url", "")
+        snippet = r.get("description", "No description")
+        lines.append(f"{i}. {title}\n   {url}\n   {snippet}\n")
+
+    return f"Search results for '{query}':\n\n" + "\n".join(lines)

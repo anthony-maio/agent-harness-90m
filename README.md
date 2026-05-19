@@ -11,7 +11,13 @@ git clone https://github.com/anthony-maio/agent-harness-90m.git
 cd agent-harness-90m
 pip install -e .
 cp .env.example .env
-# add your API key to .env (OpenAI, Anthropic, OpenRouter, etc.)
+```
+
+Add your keys to `.env`:
+
+```bash
+OPENAI_API_KEY=sk-...          # or any litellm-supported provider
+BRAVE_API_KEY=BSA...           # free: https://brave.com/search/api/
 ```
 
 Run the example task:
@@ -67,7 +73,7 @@ agent-harness-90m/
     read_file.py        # Read files from workspace
     write_file.py       # Write files to workspace
     list_files.py       # List workspace directory contents
-    web_search.py       # Search stub (replace with real API)
+    web_search.py       # Brave Search API (free tier, stub fallback)
     summarize.py        # LLM-based text summarization
   tasks/
     example_research.md # Example: research brief
